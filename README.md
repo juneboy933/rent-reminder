@@ -48,9 +48,9 @@ A backend system for managing tenants, sending automated rent reminders via SMS 
     npm run dev
 
 ## API Endpoints
- # Tenants
+ ## Tenants
 
-# POST /tenants – Add a new tenant
+### POST /tenants – Add a new tenant
   Body:
 
   {
@@ -60,11 +60,11 @@ A backend system for managing tenants, sending automated rent reminders via SMS 
       "date": "2026-02-25"
   }
 
-# GET /tenants/:landlordId – List all tenants for a landlord
+### GET /tenants/:landlordId – List all tenants for a landlord
 
-# Reminders
+### Reminders
 
-# POST /reminders/manual – Send a manual reminder
+### POST /reminders/manual – Send a manual reminder
   Body:
 
   {
@@ -72,9 +72,9 @@ A backend system for managing tenants, sending automated rent reminders via SMS 
     "phone": "+2547XXXXXXXX"
   }
   
-# SMS Logs
+## SMS Logs
 
-# GET /sms-logs – Retrieve all SMS logs
+### GET /sms-logs – Retrieve all SMS logs
   Response:
 
   {
@@ -136,7 +136,7 @@ Backend/
 
 License
 
-# MIT License © 2026 Brian Oduor
+### MIT License © 2026 Brian Oduor
    
 
    git clone https://github.com/your-username/rent-collector-backend.git
