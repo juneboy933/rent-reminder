@@ -42,7 +42,9 @@ A backend system for managing tenants, sending automated rent reminders via SMS 
 4. Start server
    ```bash
     start server
-    or for development with auto-reload:
+   
+ or for development with auto-reload:   
+ 
     npm run dev
 
 ## API Endpoints
