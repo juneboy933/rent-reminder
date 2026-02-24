@@ -26,24 +26,24 @@ A backend system for managing tenants, sending automated rent reminders via SMS 
 
 1. Clone the repository:  
    ```bash
-  git clone https://github.com/your-username/rent-collector-backend.git
-  cd rent-collector-backend
+    git clone https://github.com/your-username/rent-collector-backend.git
+    cd rent-collector-backend
 
 2. Install dependencies
     ```bash
-  npm install
+    npm install
 
 3. Create a .env file with the following variables:
      ```env
-  MONGODB_URI=your_mongodb_connection_string
-  AFRICASTALKING_USERNAME=your_username
-  AFRICASTALKING_API_KEY=your_api_key
+    MONGODB_URI=your_mongodb_connection_string
+    AFRICASTALKING_USERNAME=your_username
+    AFRICASTALKING_API_KEY=your_api_key
   
 4. Start server
    ```bash
-  start server
-  or for development with auto-reload:
-  npm run dev
+    start server
+    or for development with auto-reload:
+    npm run dev
 
 ## API Endpoints
  # Tenants
