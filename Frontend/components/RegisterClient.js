@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const TOKEN_KEY = "rent_reminder_token";
-const LANDLORD_KEY = "rent_reminder_landlord";
 const API_KEY = "rent_reminder_api_base";
 const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000/api";
 
-export default function LoginClient() {
+export default function RegisterClient() {
   const router = useRouter();
-  const [loginForm, setLoginForm] = useState({ phone: "", password: "" });
-  const [message, setMessage] = useState("Login with your landlord credentials to continue.");
+  const [registerForm, setRegisterForm] = useState({ name: "", phone: "", password: "" });
+  const [message, setMessage] = useState("Create your landlord account to begin managing tenants.");
   const [apiBase, setApiBase] = useState(DEFAULT_API);
 
   useEffect(() => {
@@ -32,13 +31,11 @@ export default function LoginClient() {
     return body;
   }
 
-  async function login() {
+  async function register() {
     try {
-      const data = await request("/landlords/login", { method: "POST", body: JSON.stringify(loginForm) });
-      window.localStorage.setItem(TOKEN_KEY, data.token);
-      window.localStorage.setItem(LANDLORD_KEY, JSON.stringify(data.landlord));
-      window.localStorage.setItem(API_KEY, apiBase);
-      router.replace("/dashboard");
+      await request("/landlords/register", { method: "POST", body: JSON.stringify(registerForm) });
+      setMessage("Account created successfully. Proceed to login.");
+      setRegisterForm({ name: "", phone: "", password: "" });
     } catch (error) {
       setMessage(error.message);
     }
@@ -48,18 +45,19 @@ export default function LoginClient() {
     <main className="auth-page">
       <section className="auth-shell">
         <div className="logo-badge">RR</div>
-        <h1>Landlord Login</h1>
-        <p>Access your tenant portfolio, payment records, and reminder operations securely.</p>
+        <h1>Create Landlord Account</h1>
+        <p>Register once to unlock your dashboard for tenants, payment tracking, and reminder management.</p>
 
         <div className="auth-form">
-          <input placeholder="Phone number" value={loginForm.phone} onChange={(e) => setLoginForm({ ...loginForm, phone: e.target.value })} />
-          <input type="password" placeholder="Password" value={loginForm.password} onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })} />
-          <button className="btn large" onClick={login}>Login to Dashboard</button>
+          <input placeholder="Full name" value={registerForm.name} onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })} />
+          <input placeholder="Phone number" value={registerForm.phone} onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })} />
+          <input type="password" placeholder="Password" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} />
+          <button className="btn large" onClick={register}>Create Account</button>
         </div>
 
         <div className="auth-links">
           <span>{message}</span>
-          <Link href="/register">Need an account? Create one</Link>
+          <Link href="/login">Already registered? Login</Link>
           <Link href="/">Back to Home</Link>
         </div>
       </section>
