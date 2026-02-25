@@ -1,0 +1,305 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const TOKEN_KEY = "rent_reminder_token";
+const LANDLORD_KEY = "rent_reminder_landlord";
+const API_KEY = "rent_reminder_api_base";
+const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000/api";
+
+function useApi(token, apiBase) {
+  return async function request(path, options = {}) {
+    const res = await fetch(`${apiBase}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || `Request failed (${res.status})`);
+    return body;
+  };
+}
+
+export default function DashboardClient() {
+  const router = useRouter();
+  const [token, setToken] = useState("");
+  const [apiBase, setApiBase] = useState(DEFAULT_API);
+  const [landlord, setLandlord] = useState(null);
+  const [summary, setSummary] = useState({ total: 0, overdue: 0, paid: 0, pending: 0 });
+  const [tenants, setTenants] = useState([]);
+  const [tenantFilter, setTenantFilter] = useState("all");
+  const [tenantSearch, setTenantSearch] = useState("");
+  const [logs, setLogs] = useState([]);
+  const [logSearch, setLogSearch] = useState("");
+  const [logStatus, setLogStatus] = useState("ALL");
+  const [message, setMessage] = useState("Ready");
+
+  const [newTenant, setNewTenant] = useState({ phone: "", amount: "", date: "" });
+  const [profile, setProfile] = useState({ name: "", phone: "" });
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: "", newPassword: "" });
+
+  useEffect(() => {
+    const t = localStorage.getItem(TOKEN_KEY);
+    if (!t) {
+      router.replace("/login");
+      return;
+    }
+    setToken(t);
+    setApiBase(localStorage.getItem(API_KEY) || DEFAULT_API);
+    const storedLandlord = JSON.parse(localStorage.getItem(LANDLORD_KEY) || "null");
+    setLandlord(storedLandlord);
+    setProfile({ name: storedLandlord?.name || "", phone: storedLandlord?.phone || "" });
+  }, [router]);
+
+  const api = useApi(token, apiBase);
+
+  async function loadSummary() {
+    const data = await api("/landlords/dashboard/summary");
+    setSummary(data);
+  }
+
+  async function loadTenants(filter = tenantFilter) {
+    const route = filter === "overdue" ? "/landlords/tenants/overdue" : filter === "upcoming" ? "/landlords/tenants/upcoming" : "/landlords/tenants";
+    const data = await api(route);
+    setTenantFilter(filter);
+    setTenants(data.tenants || []);
+  }
+
+  async function loadLogs() {
+    const data = await api("/sms-logs");
+    setLogs(data.logs || []);
+  }
+
+  async function refreshAll() {
+    try {
+      await Promise.all([loadSummary(), loadTenants(tenantFilter), loadLogs()]);
+      setMessage("Dashboard refreshed");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+    refreshAll();
+  }, [token]);
+
+  async function addTenant() {
+    try {
+      await api("/landlords/tenants", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: newTenant.phone,
+          amount: Number(newTenant.amount),
+          date: newTenant.date,
+        }),
+      });
+      setNewTenant({ phone: "", amount: "", date: "" });
+      await Promise.all([loadTenants(tenantFilter), loadSummary()]);
+      setMessage("Tenant created");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function runTenantAction(id, action) {
+    try {
+      if (action === "paid") await api(`/landlords/tenants/${id}/mark-paid`, { method: "POST" });
+      if (action === "remind") await api(`/landlords/tenants/${id}/reminder`, { method: "POST" });
+      if (action === "delete") await api(`/landlords/tenants/${id}`, { method: "DELETE" });
+      if (action === "edit") {
+        const current = tenants.find((t) => t._id === id);
+        const phone = window.prompt("Phone", current?.phone || "");
+        if (phone === null) return;
+        const amount = window.prompt("Amount", String(current?.rentAmount || 0));
+        if (amount === null) return;
+        const date = window.prompt("Due date YYYY-MM-DD", (current?.dueDate || "").slice(0, 10));
+        if (date === null) return;
+        await api(`/landlords/tenants/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ phone, amount: Number(amount), date }),
+        });
+      }
+      await Promise.all([loadTenants(tenantFilter), loadSummary(), loadLogs()]);
+      setMessage(`Tenant action complete: ${action}`);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function saveProfile() {
+    try {
+      const data = await api("/landlords/profile", {
+        method: "PUT",
+        body: JSON.stringify(profile),
+      });
+      setLandlord(data.landlord);
+      localStorage.setItem(LANDLORD_KEY, JSON.stringify(data.landlord));
+      setMessage("Profile updated");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function changePassword() {
+    try {
+      await api("/landlords/change-password", {
+        method: "PUT",
+        body: JSON.stringify(passwordForm),
+      });
+      setPasswordForm({ oldPassword: "", newPassword: "" });
+      setMessage("Password changed");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(LANDLORD_KEY);
+    router.replace("/login");
+  }
+
+  const shownTenants = useMemo(() => {
+    const q = tenantSearch.trim().toLowerCase();
+    return tenants.filter((t) => !q || (t.phone || "").toLowerCase().includes(q));
+  }, [tenantSearch, tenants]);
+
+  const shownLogs = useMemo(() => {
+    const q = logSearch.trim().toLowerCase();
+    return logs.filter((l) => {
+      const statusOk = logStatus === "ALL" || l.status === logStatus;
+      const queryOk = !q || (l.phone || "").toLowerCase().includes(q) || (l.message || "").toLowerCase().includes(q);
+      return statusOk && queryOk;
+    });
+  }, [logs, logSearch, logStatus]);
+
+  return (
+    <div className="page">
+      <aside className="sidenav">
+        <h2>Rent Reminder</h2>
+        <p>Landlord dashboard</p>
+        <ul>
+          <li>Summary</li>
+          <li>Tenants</li>
+          <li>Logs</li>
+          <li>Settings</li>
+        </ul>
+      </aside>
+
+      <main className="main">
+        <header className="header card">
+          <h1>Landlord Dashboard</h1>
+          <p>{landlord ? `${landlord.name} • ${landlord.phone}` : "Profile not loaded"}</p>
+          <div className="row">
+            <input value={apiBase} onChange={(e) => setApiBase(e.target.value)} placeholder="API base" />
+            <button onClick={() => { localStorage.setItem(API_KEY, apiBase); setMessage("API base saved"); }}>Save API</button>
+            <button className="ghost" onClick={refreshAll}>Refresh</button>
+            <button className="ghost" onClick={signOut}>Sign Out</button>
+          </div>
+          <small>{message}</small>
+        </header>
+
+        <section className="grid">
+          <div className="card metric"><span>Total</span><strong>{summary.total}</strong></div>
+          <div className="card metric"><span>Overdue</span><strong>{summary.overdue}</strong></div>
+          <div className="card metric"><span>Paid</span><strong>{summary.paid}</strong></div>
+          <div className="card metric"><span>Pending</span><strong>{summary.pending}</strong></div>
+        </section>
+
+        <section className="card">
+          <h2>Add Tenant</h2>
+          <div className="row">
+            <input placeholder="Phone" value={newTenant.phone} onChange={(e) => setNewTenant({ ...newTenant, phone: e.target.value })} />
+            <input placeholder="Amount" type="number" value={newTenant.amount} onChange={(e) => setNewTenant({ ...newTenant, amount: e.target.value })} />
+            <input type="date" value={newTenant.date} onChange={(e) => setNewTenant({ ...newTenant, date: e.target.value })} />
+            <button onClick={addTenant}>Create</button>
+          </div>
+        </section>
+
+        <section className="card">
+          <h2>Tenants</h2>
+          <div className="row">
+            <button className={tenantFilter === "all" ? "active" : ""} onClick={() => loadTenants("all")}>All</button>
+            <button className={tenantFilter === "overdue" ? "active" : ""} onClick={() => loadTenants("overdue")}>Overdue</button>
+            <button className={tenantFilter === "upcoming" ? "active" : ""} onClick={() => loadTenants("upcoming")}>Upcoming</button>
+            <input placeholder="Search phone" value={tenantSearch} onChange={(e) => setTenantSearch(e.target.value)} />
+          </div>
+          <table>
+            <thead><tr><th>Phone</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {shownTenants.map((t) => (
+                <tr key={t._id}>
+                  <td>{t.phone}</td>
+                  <td>KES {t.rentAmount}</td>
+                  <td>{new Date(t.dueDate).toLocaleDateString()}</td>
+                  <td>{t.status}</td>
+                  <td className="row">
+                    <button className="tiny" onClick={() => runTenantAction(t._id, "paid")}>Paid</button>
+                    <button className="tiny" onClick={() => runTenantAction(t._id, "remind")}>Remind</button>
+                    <button className="tiny" onClick={() => runTenantAction(t._id, "edit")}>Edit</button>
+                    <button className="tiny danger" onClick={() => runTenantAction(t._id, "delete")}>Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="card">
+          <h2>SMS Logs</h2>
+          <div className="row">
+            <button onClick={loadLogs}>Refresh Logs</button>
+            <select value={logStatus} onChange={(e) => setLogStatus(e.target.value)}>
+              <option value="ALL">All</option>
+              <option value="SENT">SENT</option>
+              <option value="FAILED">FAILED</option>
+              <option value="SKIPPED">SKIPPED</option>
+            </select>
+            <input placeholder="Search logs" value={logSearch} onChange={(e) => setLogSearch(e.target.value)} />
+          </div>
+          <table>
+            <thead><tr><th>Phone</th><th>Status</th><th>Message</th><th>Sent At</th></tr></thead>
+            <tbody>
+              {shownLogs.map((l) => (
+                <tr key={l._id}>
+                  <td>{l.phone}</td>
+                  <td>{l.status}</td>
+                  <td>{l.message}</td>
+                  <td>{new Date(l.sentAt).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+
+        <section className="split">
+          <div className="card">
+            <h2>Profile</h2>
+            <div className="col">
+              <input placeholder="Name" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+              <input placeholder="Phone" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+              <button onClick={saveProfile}>Save Profile</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Security</h2>
+            <div className="col">
+              <input type="password" placeholder="Old password" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })} />
+              <input type="password" placeholder="New password" value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} />
+              <button onClick={changePassword}>Change Password</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+
