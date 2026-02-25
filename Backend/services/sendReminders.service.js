@@ -24,6 +24,7 @@ export const sendReminders = async (phone, landlordId) => {
     try {
         if (tenant.lastReminderSent && isSameDay(tenant.lastReminderSent, currentDate)){
              await SMSLog.create({
+                landlordId,
                 phone,
                 message: `Reminder already sent today`,
                 messageId: null,
@@ -45,6 +46,7 @@ export const sendReminders = async (phone, landlordId) => {
 
         await SMSLog.insertMany(
             result.SMSMessageData.Recipients.map(recipient => ({
+                landlordId,
                 phone: recipient.number,
                 message: messageTxt,
                 messageId: recipient.messageId,
