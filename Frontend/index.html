@@ -9,10 +9,19 @@
 <body>
   <header class="hero">
     <h1>Rent Reminder Dashboard</h1>
-    <p>Track your full flow: auth, tenants, reminders, status, and SMS logs.</p>
+    <p>Standalone frontend connected to backend API.</p>
   </header>
 
   <main class="grid">
+    <section class="card">
+      <h2>API Config</h2>
+      <div class="row">
+        <input id="apiBase" placeholder="http://localhost:3000/api" />
+        <button id="saveApiBtn">Save</button>
+      </div>
+      <p id="apiState"></p>
+    </section>
+
     <section class="card">
       <h2>System Flow</h2>
       <ol class="flow">

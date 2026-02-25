@@ -1,6 +1,5 @@
 import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import cors from 'cors';
 import landlordRoutes from './routes/landlord.routes.js';
 import smsLogsRoutes from './routes/sms.routes.js';
 import { connectDB } from './config/mongo.config.js';
@@ -8,12 +7,10 @@ import './jobs/cron.job.js';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK' });

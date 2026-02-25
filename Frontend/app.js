@@ -1,18 +1,27 @@
-const API = "/api";
 const tokenKey = "rent_reminder_token";
+const apiBaseKey = "rent_reminder_api_base";
 
 const byId = (id) => document.getElementById(id);
 const logPane = byId("logConsole");
 const authState = byId("authState");
+const apiState = byId("apiState");
 
 const state = {
   token: localStorage.getItem(tokenKey) || "",
+  apiBase: localStorage.getItem(apiBaseKey) || "http://localhost:3000/api",
 };
 
 function log(message, data) {
   const time = new Date().toLocaleTimeString();
   const line = `[${time}] ${message}`;
   logPane.textContent = data ? `${line}\n${JSON.stringify(data, null, 2)}\n\n${logPane.textContent}` : `${line}\n${logPane.textContent}`;
+}
+
+function setApiBase(value) {
+  state.apiBase = value.replace(/\/+$/, "");
+  localStorage.setItem(apiBaseKey, state.apiBase);
+  byId("apiBase").value = state.apiBase;
+  apiState.textContent = `API Base: ${state.apiBase}`;
 }
 
 function setToken(token) {
@@ -33,14 +42,12 @@ function headers() {
 }
 
 async function api(path, options = {}) {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${state.apiBase}${path}`, {
     ...options,
     headers: { ...headers(), ...(options.headers || {}) },
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(body.message || `Request failed (${res.status})`);
-  }
+  if (!res.ok) throw new Error(body.message || `Request failed (${res.status})`);
   return body;
 }
 
@@ -83,27 +90,14 @@ function renderLogs(logs) {
 }
 
 async function register() {
-  const payload = {
-    name: byId("name").value,
-    phone: byId("phone").value,
-    password: byId("password").value,
-  };
-  const data = await api("/landlords/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const payload = { name: byId("name").value, phone: byId("phone").value, password: byId("password").value };
+  const data = await api("/landlords/register", { method: "POST", body: JSON.stringify(payload) });
   log("Registered landlord", data);
 }
 
 async function login() {
-  const payload = {
-    phone: byId("phone").value,
-    password: byId("password").value,
-  };
-  const data = await api("/landlords/login", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const payload = { phone: byId("phone").value, password: byId("password").value };
+  const data = await api("/landlords/login", { method: "POST", body: JSON.stringify(payload) });
   setToken(data.token);
   log("Logged in", data.landlord);
 }
@@ -114,10 +108,7 @@ async function addTenant() {
     amount: Number(byId("tenantAmount").value),
     date: byId("tenantDate").value,
   };
-  const data = await api("/landlords/tenants", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  const data = await api("/landlords/tenants", { method: "POST", body: JSON.stringify(payload) });
   log("Tenant created (auto reminder flow triggered)", data.tenant);
 }
 
@@ -168,6 +159,10 @@ async function run(fn) {
   }
 }
 
+byId("saveApiBtn").addEventListener("click", () => {
+  setApiBase(byId("apiBase").value || "http://localhost:3000/api");
+  log("API base updated", { apiBase: state.apiBase });
+});
 byId("registerBtn").addEventListener("click", () => run(register));
 byId("loginBtn").addEventListener("click", () => run(login));
 byId("logoutBtn").addEventListener("click", () => {
@@ -182,5 +177,6 @@ byId("loadUpcomingBtn").addEventListener("click", () => run(() => loadTenants("/
 byId("loadLogsBtn").addEventListener("click", () => run(loadLogs));
 byId("tenantRows").addEventListener("click", (e) => run(() => handleTenantAction(e)));
 
+setApiBase(state.apiBase);
 setToken(state.token);
-log("Dashboard ready");
+log("Standalone dashboard ready");
