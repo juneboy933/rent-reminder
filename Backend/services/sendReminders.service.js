@@ -22,17 +22,17 @@ export const sendReminders = async (phone, landlordId) => {
     const amount = tenant.rentAmount;
 
     try {
-        // if (tenant.lastReminderSent && isSameDay(tenant.lastReminderSent, currentDate)){
-        //      await SMSLog.create({
-        //         landlordId,
-        //         phone,
-        //         message: `Reminder already sent today`,
-        //         messageId: null,
-        //         status: 'SKIPPED',
-        //         sentAt: new Date()
-        //     });
-        //     return { message: 'Reminder already sent today' };
-        // }
+        if (tenant.lastReminderSent && isSameDay(tenant.lastReminderSent, currentDate)){
+             await SMSLog.create({
+                landlordId,
+                phone,
+                message: `Reminder already sent today`,
+                messageId: null,
+                status: 'SKIPPED',
+                sentAt: new Date()
+            });
+            return { message: 'Reminder already sent today' };
+        }
 
         let messageTxt;
         if (payment > today)
