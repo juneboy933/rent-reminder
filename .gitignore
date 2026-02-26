@@ -1,0 +1,11 @@
+# Ignore node modules and Next.js build cache
+/Frontend/node_modules/
+/Frontend/.next/
+
+# Ignore any other node_modules at repo root
+/node_modules/
+
+# Logs
+/npm-debug.log*
+/yarn-debug.log*
+/yarn-error.log*
