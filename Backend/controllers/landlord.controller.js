@@ -55,6 +55,12 @@ export const loginLandlord = async (req, res) => {
     const { phone, password } = req.body;
     if (!phone || !password) return res.status(400).json({ message: 'Phone and password are required' });
 
+       const isValidPhone = KENYA_PHONE_REGEX.test(phone);
+
+    if(!isValidPhone){
+        return res.status(400).json({ message: 'Phone should be in this format: +2547XXXXXXXX'});
+    }
+    
     try {
         const landlord = await Landlord.findOne({ phone });
         if (!landlord) return res.status(400).json({ message: 'Landlord not found' });

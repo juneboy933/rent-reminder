@@ -8,7 +8,7 @@ export const createTenant = async (landlordId,phone, amount, date) => {
     const validDate = !isNaN(Date.parse(date));
 
     if (!validPhone || !validAmount || !validDate) {
-        throw new Error('Invalid input data');
+        throw new Error('Invalid phone format - +2547XXXXXXXX, invalid amount or date');
     }
 
     const tenant = await Tenant.create({
