@@ -1,7 +1,7 @@
 [build]
   base    = "Frontend"
   command = "npm install && npm run build"
-  publish = "Frontend/.next"  # or "Frontend/out" if you use `next export`
+  publish = ".next"  # relative to the base directory (or "out" if you use `next export`)
 
 # optionally include plugin for optimized Next.js builds
 # [[plugins]]
