@@ -12,19 +12,34 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // ---------- Auth ----------
 export const registerLandlord = async (req, res) => {
     const { name, password, phone } = req.body;
-    if (!name || !password || !phone) return res.status(400).json({ message: 'All fields are required' });
+    console.log('[REGISTER] Received registration request:', { name, phone });
+    
+    if (!name || !password || !phone) {
+        console.log('[REGISTER] ✗ Missing fields:', { name: !!name, password: !!password, phone: !!phone });
+        return res.status(400).json({ message: 'All fields are required' });
+    }
 
     try {
+        console.log('[REGISTER] Checking for existing landlord...');
         const existingLandlord = await Landlord.findOne({ phone });
-        if (existingLandlord) return res.status(400).json({ message: 'Landlord with this phone number already exists' });
+        if (existingLandlord) {
+            console.log('[REGISTER] ✗ Landlord already exists with phone:', phone);
+            return res.status(400).json({ message: 'Landlord with this phone number already exists' });
+        }
 
+        console.log('[REGISTER] Hashing password...');
         const hashedPassword = await hashPassword(password);
+        console.log('[REGISTER] Creating landlord in database...');
         const landlord = await Landlord.create({ name, password: hashedPassword, phone });
+        console.log('[REGISTER] ✓ Landlord created successfully:', { id: landlord._id, name: landlord.name });
+        
         res.status(201).json({
             message: 'Landlord registered successfully',
             landlord: { id: landlord._id, name: landlord.name, phone: landlord.phone }
         });
     } catch (err) {
+        console.error('[REGISTER] ✗ Error registering landlord:', err.message);
+        console.error(err.stack);
         res.status(500).json({ message: 'Error registering landlord', error: err.message });
     }
 };
@@ -55,17 +70,26 @@ export const loginLandlord = async (req, res) => {
 export const addTenant = async (req, res) => {
     const landlordId = req.user.id;
     const { phone, amount, date } = req.body;
-    if (!phone || !amount || !date) return res.status(400).json({ message: 'All fields are required' });
+    console.log('[ADD_TENANT] Request received:', { landlordId, phone, amount, date });
+    
+    if (!phone || !amount || !date) {
+        console.log('[ADD_TENANT] ✗ Missing fields:', { phone: !!phone, amount: !!amount, date: !!date });
+        return res.status(400).json({ message: 'All fields are required' });
+    }
 
     try {
+        console.log('[ADD_TENANT] Creating tenant...');
         const result = await createTenant(landlordId, phone, amount, date);
+        console.log('[ADD_TENANT] ✓ Tenant created successfully:', { tenantId: result.tenant._id });
         res.status(201).json({ message: 'Tenant created successfully', tenant: result.tenant });
 
         // Fire-and-forget; tenant creation should not fail because SMS failed.
         processRequest(phone, landlordId).catch((error) => {
-            console.error(`Reminder trigger failed for ${phone}:`, error.message);
+            console.error(`[ADD_TENANT] Reminder trigger failed for ${phone}:`, error.message);
         });
     } catch (err) {
+        console.error('[ADD_TENANT] ✗ Error adding tenant:', err.message);
+        console.error(err.stack);
         res.status(500).json({ message: 'Error adding tenant', error: err.message });
     }
 };

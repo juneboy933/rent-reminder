@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const TOKEN_KEY = "rent_reminder_token";
 const LANDLORD_KEY = "rent_reminder_landlord";
-const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000/api";
+const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api";
 
 const TABS = [
   { id: "add", label: "Add Tenant" },

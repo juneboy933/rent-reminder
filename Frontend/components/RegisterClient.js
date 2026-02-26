@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 const TOKEN_KEY = "rent_reminder_token";
 const API_KEY = "rent_reminder_api_base";
-const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000/api";
+const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api";
 
 export default function RegisterClient() {
   const router = useRouter();

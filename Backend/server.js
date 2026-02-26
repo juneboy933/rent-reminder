@@ -5,12 +5,23 @@ import smsLogsRoutes from './routes/sms.routes.js';
 import { connectDB } from './config/mongo.config.js';
 import './jobs/cron.job.js';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Verbose request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('  Body:', JSON.stringify(req.body));
+  console.log('  Headers:', req.headers);
+  res.on('finish', () => {
+    console.log(`  Response Status: ${res.statusCode}`);
+  });
+  next();
+});
 
 app.get('/health', (_, res) => {
   res.status(200).json({ status: 'OK' });
@@ -19,11 +30,51 @@ app.get('/health', (_, res) => {
 // Routes
 app.use('/api/landlords', landlordRoutes);
 app.use('/api/sms-logs', smsLogsRoutes);
+// Routes - voice
+app.post('/api/voice', (req, res) => {
+    const sessionId = req.body.sessionId;
+    const isActive = req.body.isActive;
+    const callerNumber = req.body.callerNumber;
 
+    console.log("Incoming call from:", callerNumber);
+
+    let response;
+
+    if (isActive === "1") {
+        // Call is ongoing — respond with instructions
+        response = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="woman">Hello. Welcome to your payment reminder service.</Say>
+    <GetDigits timeout="10" finishOnKey="#">
+        <Say>Press 1 to hear your balance. Press 2 to make a payment.</Say>
+    </GetDigits>
+</Response>`;
+    } else {
+        // Call ended
+        response = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say>Goodbye</Say>
+</Response>`;
+    }
+
+    res.set('Content-Type', 'text/xml');
+    res.send(response);
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(`[ERROR] ${err.message}`);
+  console.error(err.stack);
+  res.status(500).json({ message: err.message });
+});
+
+console.log('[STARTUP] Connecting to MongoDB...');
 connectDB.then(() => {
   app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+      console.log(`[STARTUP] ✓ Server running on http://localhost:${PORT}`);
+      console.log(`[STARTUP] Database connected successfully`);
   });
 }).catch( err => {
-  console.error('Failed to connect to database:', err);
+  console.error('[STARTUP] ✗ Failed to connect to database:', err.message);
+  process.exit(1);
 });
