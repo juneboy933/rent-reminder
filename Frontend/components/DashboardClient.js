@@ -139,6 +139,7 @@ export default function DashboardClient() {
     }
   }
 
+
   async function saveProfile() {
     try {
       const data = await api("/landlords/profile", {
@@ -261,6 +262,8 @@ export default function DashboardClient() {
                     ))}
                   </tbody>
                 </table>
+
+
               </section>
             )}
 
