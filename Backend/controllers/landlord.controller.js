@@ -8,6 +8,7 @@ import { comparePassword, hashPassword } from "../services/password.service.js";
 import { sendReminders } from "../services/sendReminders.service.js";
 
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const KENYA_PHONE_REGEX = /^\+254[0-9]{9}$/;
 
 // ---------- Auth ----------
 export const registerLandlord = async (req, res) => {
@@ -17,6 +18,12 @@ export const registerLandlord = async (req, res) => {
     if (!name || !password || !phone) {
         console.log('[REGISTER] ✗ Missing fields:', { name: !!name, password: !!password, phone: !!phone });
         return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const isValidPhone = KENYA_PHONE_REGEX.test(phone);
+
+    if(!isValidPhone){
+        return res.status(400).json({ message: 'Phone should be in this format: +2547XXXXXXXX'});
     }
 
     try {
