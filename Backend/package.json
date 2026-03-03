@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "payment-reminder-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for payment reminder & collection service",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

@@ -1,6 +1,6 @@
-# Rent Collector Backend
+# Payment Reminder & Collection
 
-A backend system for managing tenants, sending automated rent reminders via SMS using Africa's Talking, and tracking payments. Designed for landlords to monitor tenants’ rent schedules and overdue payments.
+A backend system for reminding customers of pending or occurring payments and prompting them for payments. Works with SMS (Africa's Talking) and supports future payment integrations such as M-PESA for collections.
 
 ## Features
 
@@ -130,7 +130,7 @@ Backend/
 
 - USSD menu for landlords without smartphones.
 
-- Payment integration (MPESA) for direct rent collection.
+- Payment integration (MPESA) for direct payment collection.
 
 - Analytics dashboard (payment trends, late payment frequency).
 

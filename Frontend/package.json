@@ -1,5 +1,5 @@
 {
-  "name": "rent-reminder-frontend",
+  "name": "payment-reminder-frontend",
   "private": true,
   "version": "1.0.0",
   "scripts": {
@@ -13,5 +13,3 @@
     "react-dom": "19.0.0"
   }
 }
-
-
