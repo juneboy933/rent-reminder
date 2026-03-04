@@ -10,6 +10,7 @@ const DEFAULT_API = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/a
 const TABS = [
   { id: "add", label: "Add Tenant" },
   { id: "tenants", label: "Tenants" },
+  { id: "payment", label: "Payment" },
   { id: "logs", label: "SMS Logs" },
   { id: "profile", label: "Profile" },
 ];
@@ -49,6 +50,8 @@ export default function DashboardClient() {
   const [newTenant, setNewTenant] = useState({ phone: "", amount: "", date: "" });
   const [profile, setProfile] = useState({ name: "", phone: "" });
   const [passwordForm, setPasswordForm] = useState({ oldPassword: "", newPassword: "" });
+  const [paymentForm, setPaymentForm] = useState({ phoneNumber: "", amount: "" });
+  const [stkLoading, setStkLoading] = useState(false);
 
   useEffect(() => {
     const t = window.localStorage.getItem(TOKEN_KEY);
@@ -167,6 +170,29 @@ export default function DashboardClient() {
     }
   }
 
+  async function initiateSTKPayment() {
+    try {
+      if (!paymentForm.phoneNumber || !paymentForm.amount) {
+        setMessage("Please enter both phone number and amount.");
+        return;
+      }
+      setStkLoading(true);
+      const data = await api("/mpesa/stkpush", {
+        method: "POST",
+        body: JSON.stringify({
+          phoneNumber: paymentForm.phoneNumber,
+          amount: Number(paymentForm.amount),
+        }),
+      });
+      setMessage(`STK push initiated successfully. Checkout ID: ${data.response?.CheckoutRequestID || "N/A"}`);
+      setPaymentForm({ phoneNumber: "", amount: "" });
+    } catch (error) {
+      setMessage(`Payment initiation failed: ${error.message}`);
+    } finally {
+      setStkLoading(false);
+    }
+  }
+
   function signOut() {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(LANDLORD_KEY);
@@ -264,6 +290,38 @@ export default function DashboardClient() {
                 </table>
 
 
+              </section>
+            )}
+
+            {activeTab === "payment" && (
+              <section>
+                <h2>Initiate Payment (M-Pesa STK Push)</h2>
+                <p>Enter a phone number and amount to trigger an M-Pesa payment prompt on the customer's phone.</p>
+                <div className="card inner-card">
+                  <div className="form-grid">
+                    <input
+                      placeholder="Phone number (e.g., 254712345678)"
+                      value={paymentForm.phoneNumber}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, phoneNumber: e.target.value })}
+                    />
+                    <input
+                      placeholder="Amount (KES)"
+                      type="number"
+                      value={paymentForm.amount}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                    />
+                    <button
+                      className="btn large"
+                      onClick={initiateSTKPayment}
+                      disabled={stkLoading}
+                    >
+                      {stkLoading ? "Processing..." : "Send STK Push"}
+                    </button>
+                  </div>
+                  <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#666" }}>
+                    ℹ️ A payment prompt will appear on the customer's phone. They have 30 seconds to enter their M-Pesa PIN.
+                  </p>
+                </div>
               </section>
             )}
 

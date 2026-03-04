@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import landlordRoutes from './routes/landlord.routes.js';
 import smsLogsRoutes from './routes/sms.routes.js';
+import mpesaRoutes from './routes/mpesa.routes.js';
 import { connectDB } from './config/mongo.config.js';
 import './jobs/cron.job.js';
 
@@ -30,36 +31,7 @@ app.get('/health', (_, res) => {
 // Routes
 app.use('/api/landlords', landlordRoutes);
 app.use('/api/sms-logs', smsLogsRoutes);
-// Routes - voice
-app.post('/api/voice', (req, res) => {
-    const sessionId = req.body.sessionId;
-    const isActive = req.body.isActive;
-    const callerNumber = req.body.callerNumber;
-
-    console.log("Incoming call from:", callerNumber);
-
-    let response;
-
-    if (isActive === "1") {
-        // Call is ongoing — respond with instructions
-        response = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say voice="woman">Hello. Welcome to your payment reminder service.</Say>
-    <GetDigits timeout="10" finishOnKey="#">
-        <Say>Press 1 to hear your balance. Press 2 to make a payment.</Say>
-    </GetDigits>
-</Response>`;
-    } else {
-        // Call ended
-        response = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-    <Say>Goodbye</Say>
-</Response>`;
-    }
-
-    res.set('Content-Type', 'text/xml');
-    res.send(response);
-});
+app.use('/api/mpesa', mpesaRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
